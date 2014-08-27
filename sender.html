@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<title>Sender Test Page</title>
+<STYLE type="text/css">
+#send {
+	text-align: center;
+	margin-top: 100px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#content {
+	 position: fixed;
+	 bottom:	60px;
+	left: 50%;
+	margin-left: -100px;
+}
+
+</STYLE>
+<link rel="stylesheet" href="jqwidgets/styles/jqx.base.css" type="text/css" />
+    <script type="text/javascript" src="scripts/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="scripts/demos.js"></script>
+    <script type="text/javascript" src="jqwidgets/jqxcore.js"></script>
+    <script type="text/javascript" src="jqwidgets/jqxbuttons.js"></script>
+    <script type="text/javascript" src="jqwidgets/jqxscrollbar.js"></script>
+    <script type="text/javascript" src="jqwidgets/jqxlistbox.js"></script>
+    <script type="text/javascript" src="jqwidgets/jqxdragdrop.js"></script>
+	<script type="text/javascript" src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
+<script>
+function receiverListener(e) {
+  if( e === 'available' ) {
+    console.log("receiver found");
+    
+  }
+  else {
+    console.log("receiver list empty");
+ 
+  }
+}
+initializeCastApi = function() {
+	var sessionRequest = new chrome.cast.SessionRequest('C03FEC6C');
+	var apiConfig = new chrome.cast.ApiConfig(sessionRequest,
+    sessionListener,
+    receiverListener);
+	chrome.cast.initialize(apiConfig, onInitSuccess, onError);
+	};
+if (!chrome.cast || !chrome.cast.isAvailable) {
+  setTimeout(initializeCastApi, 1000);
+
+
+	
+}
+function onInitSuccess() {
+  console.log("init success");
+}
+
+/**
+ * initialization error callback
+ */
+function onError() {
+  console.log("error");
+  
+}
+
+ //chrome.cast.requestSession(onRequestSessionSuccess, onLaunchError);
+ 
+ function onRequestSessionSuccess(e) {
+ 
+      session = e;
+ }
+
+/**
+ * callback on launch error
+ */
+function onLaunchError() {
+  console.log("launch error");
+
+}
+function sessionListener(e) {
+  session = e;
+  if (session.media.length != 0) {
+    onMediaDiscovered('onRequestSessionSuccess', session.media[0]);
+  }
+}
+
+ 
+	var playlistopen=false;
+	 var source = [];
+	 var selectedItem;
+	 $(document).ready(function () {
+	     $("#jqxWidget").jqxListBox({ selectedIndex: 3, source: source, width: 200, height: 250, allowDrag:true 
+		
+				});
+				
+            
+				$('#jqxWidget').on('select', function (event) {
+				var args = event.args;
+				if (args) {
+					var index = args.index;
+					var item = args.item;
+					selectedItem=item.value;
+					console.log(index);
+					console.log(item.value);
+					}
+				});
+				$("#jqxWidget").on('dragStart', function (event) {
+                 //   console.log("drag start");
+                });
+               
+			});
+		
+    // 아래 값은 상황에 맞게 변경할 것
+    url = "ws://192.168.1.202:8080";
+    w = new WebSocket(url);
+ 
+    w.onopen = function() {
+  
+		w.send('sender@connect');
+    }
+ 
+    w.onmessage = function(e) {
+        console.log(e.data);
+		//source.push(e.data);
+		$("#jqxWidget").jqxListBox('addItem', e.data ); 
+			  
+              
+                // Create a jqxListBox
+            
+			
+	
+			
+   
+    }
+ 
+    w.onclose = function(e) {
+     
+    }
+ 
+    window.onload = function() {
+       	$('#content').hide();	
+        document.getElementById("sendButton").onclick = function() {
+            console.log(document.getElementById("inputMessage").value);
+            w.send('sender@url@' + document.getElementById("inputMessage").value);
+		
+        }
+		document.getElementById("quickButton").onclick = function() {
+            console.log(document.getElementById("inputMessage").value);
+            w.send('sender@quick@' + document.getElementById("inputMessage").value);
+        }
+		document.getElementById("PlayList").onclick = function() {
+			if(playlistopen===false) {
+				console.log(document.getElementById("inputMessage").value);
+				
+			
+			
+				w.send('sender@Qinfo@' + document.getElementById("inputMessage").value);
+				$('#content').show();
+				playlistopen=true;
+			}
+			else {
+				$('#content').hide();
+				$("#jqxWidget").jqxListBox('clear'); 
+				playlistopen=false;
+			}
+        }
+		document.getElementById("YTBButton").onclick = function() {
+            console.log(document.getElementById("inputMessage").value);
+            w.send('sender@Qurl@http://www.youtube.com/embed/' + document.getElementById("inputMessage").value);
+        }
+		document.getElementById("EmptyButton").onclick = function() {
+            console.log(document.getElementById("inputMessage").value);
+            w.send('sender@empty@' + document.getElementById("inputMessage").value);
+        }
+		
+		
+		document.getElementById("delete").onclick = function() {
+			  $("#jqxWidget").jqxListBox('removeItem', selectedItem);
+        }
+		document.getElementById("editsend").onclick = function() {
+			var items = $("#jqxWidget").jqxListBox('getItems'); 
+			for(var i=0;i<items.length;i++) {
+				w.send('sender@edit@'+items[i].value);
+			}
+			$('#content').hide();
+			$("#jqxWidget").jqxListBox('clear'); 
+			playlistopen=false;
+        }
+		document.getElementById("close").onclick = function() {
+			$('#content').hide();
+			$("#jqxWidget").jqxListBox('clear'); 
+			playlistopen=false;
+        }
+    }
+		
+
+          
+   
+</script>
+ <div id="send">
+ <img src="sendertitle.png" id="senderTitle"  />
+ </br>
+<input type="text" id="inputMessage" value=""  style="width:500px;">
+<button id="sendButton">Send</button>
+</br>
+<button id="YTBButton">YouTube</button>
+<button id="quickButton">Play</button>
+<button id="PlayList">PlayList</button>
+<button id="EmptyButton">Empty</button>
+ 
+   <div id='content'>
+        <span src="playlist.png" id="senderTitle"  />
+
+        <div id='jqxWidget'>
+        </div>
+		<div id='listbutton'>
+			</br>
+			<button id="editsend">Send</button>
+			<button id="delete">Delete</button>
+			<button id="close">Close</button>
+        </div>
+    </div>
+	
+ </div>
+ 
